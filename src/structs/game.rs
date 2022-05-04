@@ -7,6 +7,9 @@ use tba::models::{room::Room, item::Item};
 use tba::schema::rooms::dsl::*;
 use crate::get_input;
 use diesel::prelude::*;
+use tba::models::direction::Direction;
+use tba::models::room_direction::{ RoomConnection};
+use tba::schema::room_connections::dsl::room_connections;
 
 pub struct Game {
     db_connection: MysqlConnection,
@@ -52,9 +55,15 @@ impl Game {
 
     // Describes the game's execution cycle
     pub fn update(&mut self) -> () {
+        let current_room  = self.get_current_room();
         // Describe the place
-        println!("You are in the {}", self.get_current_room().name);
+        println!("You are in the {}", current_room.name);
+
         // Show allowed directions
+        for connection in current_room.get_connection_from() {
+            println!("- {} is the {}", connection.get_direction().name ,connection.get_to_room().name)
+        }
+
         // Display all items available to interact with
         let items: Vec<Item> = Item::belonging_to(self.get_current_room()).load(&self.db_connection).expect("Error during loading items");
 
@@ -69,9 +78,26 @@ impl Game {
         }
 
         // Waiting for user input
-        let input = get_input("Please type something...");
+        let input = get_input("Please type a command...");
         if input == "exit" {
             self.stop();
+        }
+
+        match Direction::find_by_command(input) {
+            None => {}
+            Some(direction) => {
+                let next_room = self.get_current_room().get_room_by_direction(direction);
+                match next_room {
+                    None => {
+                        println!("You cannot go into that direction !");
+                        return;
+                    },
+                    Some(next_room) => {
+                        self.current_room = next_room;
+                    }
+                }
+                return;
+            }
         }
     }
 }
