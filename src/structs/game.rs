@@ -9,7 +9,7 @@ use crate::get_input;
 use diesel::prelude::*;
 use tba::models::command::Command;
 use tba::models::direction::Direction;
-use tba::models::effect::Effect;
+use tba::models::effect::{Effect, MessageEffect};
 use tba::models::room_direction::{ RoomConnection};
 use tba::schema::room_connections::dsl::room_connections;
 
@@ -129,13 +129,14 @@ impl Game {
 
         //Search all effects for the selected item
         let effects = Effect::get_by_item_and_command(&item, &command);
-        match effects.is_empty() {
+        match Effect::get_by_item_and_command(&item, &command).is_empty() {
             true => {
-                println!("{}", command.default_message);
+                command.default_message;
+                return;
             },
             false => {
                 for effect in effects {
-                    println!("{}", effect.message);
+                    effect.to_abstract_effect().trigger();
                 }
             }
         }

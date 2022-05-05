@@ -1,9 +1,11 @@
 pub mod models;
 pub mod schema;
+pub mod modules;
 
 #[macro_use]
 extern crate diesel;
 extern crate dotenv;
+extern crate core;
 
 use diesel::prelude::*;
 use diesel::mysql::MysqlConnection;
