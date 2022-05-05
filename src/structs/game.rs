@@ -7,7 +7,9 @@ use tba::models::{room::Room, item::Item};
 use tba::schema::rooms::dsl::*;
 use crate::get_input;
 use diesel::prelude::*;
+use tba::models::command::Command;
 use tba::models::direction::Direction;
+use tba::models::effect::Effect;
 use tba::models::room_direction::{ RoomConnection};
 use tba::schema::room_connections::dsl::room_connections;
 
@@ -65,8 +67,9 @@ impl Game {
         }
 
         // Display all items available to interact with
-        let items: Vec<Item> = Item::belonging_to(self.get_current_room()).load(&self.db_connection).expect("Error during loading items");
-
+        let items: Vec<Item> = Item::belonging_to(
+            self.get_current_room()
+        ).load(&self.db_connection).expect(&format!("Error during loading items from room: {}", self.get_current_room().id));
         match items.is_empty() {
             true => println!("No visible items."),
             false => {
@@ -83,20 +86,57 @@ impl Game {
             self.stop();
         }
 
-        match Direction::find_by_command(input) {
+        // Check if input is a direction
+        match Direction::find_by_command(&input) {
             None => {}
             Some(direction) => {
                 let next_room = self.get_current_room().get_room_by_direction(direction);
                 match next_room {
                     None => {
                         println!("You cannot go into that direction !");
-                        return;
                     },
                     Some(next_room) => {
                         self.current_room = next_room;
                     }
                 }
                 return;
+            }
+        }
+
+        let command_name = Command::extract_command_name(&input);
+        if command_name == None {
+            println!("Invalid command.");
+            return;
+        }
+        let command = match Command::get_by_command_name(command_name.unwrap().to_string()) {
+            None => {
+                println!("This command does not exit.");
+                return
+            },
+            Some(command) => command
+        };
+
+        // Find item of the command by room and by item name
+        let item = match Item::get_by_room_and_item_name(
+            &self.current_room, Command::extract_item_name(&input).unwrap().to_string()
+        ) {
+            None => {
+                println!("Item not found in this room !");
+                return;
+            },
+            Some(item) => item
+        };
+
+        //Search all effects for the selected item
+        let effects = Effect::get_by_item_and_command(&item, &command);
+        match effects.is_empty() {
+            true => {
+                println!("{}", command.default_message);
+            },
+            false => {
+                for effect in effects {
+                    println!("{}", effect.message);
+                }
             }
         }
     }

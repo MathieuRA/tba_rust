@@ -7,6 +7,11 @@ use diesel::prelude::*;
 use diesel::sql_query;
 use diesel::types::IsNull::No;
 
+pub trait Entity<T> {
+    fn get_all() -> Vec<Option<T>>;
+    fn get_by_id(id: i32) -> Option<T>;
+}
+
 #[derive(Identifiable, Queryable, QueryableByName, Clone, Debug)]
 #[table_name = "rooms"]
 pub struct Room {
@@ -21,6 +26,7 @@ impl Room {
     }
 
     pub fn get_room_by_direction(&self, direction: Direction) -> Option<Self> {
+        // https://stackoverflow.com/questions/69023458/rust-diesel-sql-query-insert-example-with-returning
         let query = format!("SELECT rooms.id, rooms.name FROM room_connections INNER JOIN rooms ON rooms.id = room_connections.to_room_id WHERE room_connections.from_room_id = {}  AND room_connections.direction_id = {}", self.id, direction.id);
         let room_result: Option<Vec<Room>> = sql_query(&query)
             .load(&establish_connection()).optional().expect("Error when getting room by direction.");
@@ -37,4 +43,13 @@ impl Room {
         room
     }
 
+}
+
+impl Entity<Room> for Room {
+    fn get_all() -> Vec<Option<Room>> {
+        todo!()
+    }
+    fn get_by_id(id: i32) -> Option<Room> {
+        todo!()
+    }
 }

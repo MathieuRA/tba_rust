@@ -12,7 +12,7 @@ pub struct Direction {
 }
 
 impl Direction {
-    pub fn find_by_command(command: String) -> Option<Direction>{
+    pub fn find_by_command(command: &String) -> Option<Direction>{
         schema::directions::dsl::directions
             .filter(schema::directions::command.eq(command))
             .first::<Direction>(&establish_connection())
